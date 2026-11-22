@@ -9,7 +9,13 @@ from groq import Groq
 app = FastAPI(title="Inclusiv'IA - API de Simplification FALC")
 
 # Initialisation du client Groq (clé API dans les variables d'environnement)
-client_groq = Groq(api_key="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")
+# client_groq = Groq(api_key="cle_groq.txt")
+# 1. Lire la clé depuis le fichier texte
+with open("cle_groq.txt", "r") as f:
+    GROQ_API_KEY = f.read().strip()
+
+# 2. Passer la clé lue au client Groq
+client_groq = Groq(api_key=GROQ_API_KEY)
 
 # ==============================================================================
 # 1. PROMPTS DÉCOUPLÉS ET SPÉCIFIQUES À CHAQUE MOTEUR D'IA

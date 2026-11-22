@@ -9,7 +9,7 @@ from groq import Groq
 app = FastAPI(title="Inclusiv'IA - API de Simplification FALC")
 
 # Initialisation du client Groq (clé API dans les variables d'environnement)
-client_groq = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
+client_groq = Groq(api_key="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")
 
 # ==============================================================================
 # 1. PROMPTS DÉCOUPLÉS ET SPÉCIFIQUES À CHAQUE MOTEUR D'IA
@@ -39,43 +39,50 @@ Consignes :
 # ==============================================================================
 
 # Route principale universelle (Texte) - Accepte /api/analyse-texte et /api/simplify
+# ==============================================================================
 @app.post("/api/analyse-texte")
 @app.post("/api/simplify")
 async def simplify_text(request: Request):
     input_text = ""
     
-    # Extraire le texte quel que soit le format envoyé par le JavaScript
+    # Étape A : Extraire le texte
     try:
         data = await request.json()
         if isinstance(data, dict):
-            input_text = (
-                data.get("text") or 
-                data.get("texte") or 
-                data.get("prompt") or 
-                data.get("content") or 
-                data.get("message") or 
-                data.get("input") or ""
-            )
+            input_text = data.get("text") or data.get("texte") or data.get("prompt") or ""
         elif isinstance(data, str):
             input_text = data
     except Exception:
-        try:
-            form_data = await request.form()
-            input_text = (
-                form_data.get("text") or 
-                form_data.get("texte") or 
-                form_data.get("prompt") or 
-                form_data.get("content") or ""
-            )
-        except Exception:
-            input_text = ""
+        input_text = ""
 
     input_text = input_text.strip()
-
     if not input_text:
         raise HTTPException(status_code=400, detail="Aucun texte valide n'a été fourni.")
 
-    # TENTATIVE 1 : Moteur Principal — Ollama (Local sur GPU)
+    # --------------------------------------------------------------------------
+    # TENTATIVE 1 : Groq Cloud en Premier
+    # --------------------------------------------------------------------------
+    try:
+        prompt_groq = f"{PROMPT_GROQ}\n\nTexte à simplifier :\n{input_text}"
+
+        chat_completion = client_groq.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_groq}],
+            model="openai/gpt-oss-20b"
+        )
+
+        resultat = chat_completion.choices[0].message.content.strip()
+        if resultat:
+            return {
+                "simplified_text": resultat,
+                "source": "Groq (Cloud)"
+            }
+
+    except Exception as e:
+        print(f"⚠️ Groq Cloud indisponible ({e}). Bascule automatique sur Ollama (Local)...")
+
+    # --------------------------------------------------------------------------
+    # TENTATIVE 2 : Ollama Local en Secours (Fallback)
+    # --------------------------------------------------------------------------
     try:
         prompt_ollama = f"{PROMPT_OLLAMA}\n\nTexte à simplifier :\n{input_text}"
 
@@ -98,30 +105,10 @@ async def simplify_text(request: Request):
                 }
 
     except Exception as e:
-        print(f"⚠️ Ollama local indisponible ({e}). Bascule automatique sur Groq (Cloud)...")
-
-    # TENTATIVE 2 : Moteur de Secours — Groq API (Cloud)
-    try:
-        prompt_groq = f"{PROMPT_GROQ}\n\nTexte à simplifier :\n{input_text}"
-
-        chat_completion = client_groq.chat.completions.create(
-            messages=[
-                {"role": "user", "content": prompt_groq}
-            ],
-            model="llama-3.3-70b-versatile",
-        )
-
-        resultat = chat_completion.choices.message.content.strip()
-        return {
-            "simplified_text": resultat,
-            "source": "Groq (Cloud)"
-        }
-
-    except Exception as e:
-        print(f"❌ Erreur critique Groq Cloud : {e}")
+        print(f"❌ Erreur critique Ollama : {e}")
         raise HTTPException(
             status_code=500,
-            detail="Aucun moteur d'IA (ni local, ni cloud) n'a pu répondre."
+            detail="Aucun moteur d'IA (ni Cloud, ni Local) n'a pu répondre."
         )
 
 

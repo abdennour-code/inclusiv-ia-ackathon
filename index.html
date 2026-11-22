@@ -3,118 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inclusiv'IA - Simplificateur FALC</title>
-    <!-- Bootstrap 5 CSS -->
+    <title>Inclusiv'IA - Simplification FALC</title>
+    
+    <!-- BOOTSTRAP 5 : Import de la bibliothèque de styles -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #f8f9fa; font-family: system-ui, sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
-        main { flex: 1; }
-        .card-falc { border-left: 5px solid #0d6efd; background-color: #ffffff; }
-        .result-box { white-space: pre-line; font-size: 1.1rem; line-height: 1.6; }
+        /* Quelques petites retouches visuelles personnalisées */
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            max-width: 800px;
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+        .card-custom {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: none;
+        }
+        .result-box {
+            background-color: #eef9f1;
+            border-left: 5px solid #198754;
+            border-radius: 8px;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <header class="py-4 bg-white border-bottom text-center">
-        <h1 class="fw-bold m-0">Inclusiv'IA 🧠</h1>
-        <p class="text-muted m-0">Simplification de texte en FALC (Facile À Lire et à Comprendre)</p>
-    </header>
+<!-- BOOTSTRAP : Conteneur principal centré -->
+<div class="container main-container">
+    
+    <!-- En-tête de la page -->
+    <div class="text-center mb-4">
+        <h1 class="fw-bold text-primary">Inclusiv'IA 🧠</h1>
+        <p class="text-muted lead">Simplification de texte en langage Facile À Lire et à Comprendre (FALC)</p>
+    </div>
 
-    <main class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <!-- Formulaire de saisie -->
-                <div class="card p-4 shadow-sm mb-4">
-                    <label for="texte-input" class="form-label fw-bold">Saisissez un texte complexe :</label>
-                    <textarea id="texte-input" class="form-control mb-3" rows="5" placeholder="Ex: Nonobstant les règles administratives en vigueur..."></textarea>
-                    <button id="btn-analyser" class="btn btn-primary btn-lg w-100">
-                        ⚡ Lancer l'analyse IA
-                    </button>
-                </div>
+    <!-- BOOTSTRAP : Carte blanche avec ombre et coins arrondis -->
+    <div class="card card-custom p-4 bg-white">
+        <form id="form-analyse">
+            <div class="mb-3">
+                <label for="texte-input" class="form-label fw-bold fs-5">Saisissez un texte complexe :</label>
+                <!-- BOOTSTRAP : Zone de saisie de texte grand format -->
+                <textarea 
+                    id="texte-input" 
+                    class="form-control form-control-lg" 
+                    rows="5" 
+                    placeholder="Collez ici le texte administratif, juridique ou complexe à simplifier..."></textarea>
+            </div>
 
-                <!-- 🎯 ZONE D'AFFICHAGE DU RÉSULTAT ET BOUTON VÉOCAL -->
-                <div id="card-resultat" class="card p-4 shadow-sm card-falc d-none" aria-live="polite">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="h5 text-primary fw-bold m-0">Résultat de l'IA :</h2>
-                        <!-- 🔊 BOUTON D'ÉCOUTE VOCALE -->
-                        <button id="btn-ecouter" class="btn btn-outline-primary btn-sm">
-                            🔊 Écouter le résultat
-                        </button>
-                    </div>
-                    <div id="contenu-resultat" class="result-box text-dark">
-                        <em>Le résultat simplifié s'affichera ici...</em>
-                    </div>
-                </div>
+            <!-- BOOTSTRAP : Grand bouton bleu plein (btn-primary btn-lg w-100) -->
+            <button id="btn-analyser" type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold">
+                ⚡ Lancer l'analyse IA
+            </button>
+        </form>
+
+        <!-- BOOTSTRAP : Zone de résultat (masquée au départ avec la classe d-none) -->
+        <div id="card-resultat" class="mt-4 d-none">
+            <h5 class="fw-bold text-success mb-3">Résultat de l'IA :</h5>
+            <div id="contenu-resultat" class="result-box">
+                <!-- Le contenu dynamique sera injecté ici par JavaScript -->
             </div>
         </div>
-    </main>
+    </div>
+</div>
 
-    <!-- FOOTER -->
-    <footer class="bg-dark text-white text-center py-3 mt-auto">
-        <div class="container">
-            <p class="m-0 small">Inclusiv'IA &copy; 2026 - Plateforme d'Accessibilité Numérique</p>
-            <small class="text-muted">Conforme aux recommandations RGAA & FALC</small>
-        </div>
-    </footer>
+<!-- LOGIQUE JAVASCRIPT (LE FONCTIONNEMENT DE L'APPLICATION) -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Récupération des éléments HTML par leur ID
+    const btn = document.getElementById('btn-analyser');
+    const texteInput = document.getElementById('texte-input');
+    const cardResultat = document.getElementById('card-resultat');
+    const contenuResultat = document.getElementById('contenu-resultat');
+    const formAnalyse = document.getElementById('form-analyse');
 
-    <script>
-        const btn = document.getElementById('btn-analyser');
-        const input = document.getElementById('texte-input');
-        const cardResultat = document.getElementById('card-resultat');
-        const contenuResultat = document.getElementById('contenu-resultat');
-        const btnEcouter = document.getElementById('btn-ecouter');
+    // ÉCOUTE DU CLIC SUR LE BOUTON
+    formAnalyse.addEventListener('submit', async (e) => {
+        // ÉTAPE 1 : Empêcher le rechargement automatique de la page web
+        e.preventDefault(); 
 
-        // 1. Analyse IA
-        btn.addEventListener('click', async () => {
-            const texte = input.value.trim();
-            if (!texte) {
-                alert("Veuillez saisir un texte à simplifier.");
-                return;
+        const inputText = texteInput.value.trim();
+
+        // Sécurité : vérifier que l'utilisateur a écrit quelque chose
+        if (!inputText) {
+            alert("Veuillez saisir un texte avant de lancer l'analyse.");
+            return;
+        }
+
+        // ÉTAPE 2 : PRÉPARATION DU VISUEL (Mode Chargement)
+        // - On désactive le bouton pour éviter les double-clics
+        // - On remplace le texte du bouton par un sablier
+        // - On affiche le bloc de résultat en retirant la classe Bootstrap 'd-none'
+        btn.disabled = true;
+        btn.innerText = "⏳ Analyse IA en cours...";
+        cardResultat.classList.remove('d-none');
+        
+        // Affichage d'un spinner de chargement Bootstrap
+        contenuResultat.innerHTML = `
+            <div class="d-flex align-items-center gap-3">
+                <div class="spinner-border text-success" role="status"></div>
+                <span><em>L'IA simplifie votre texte...</em></span>
+            </div>
+        `;
+
+        try {
+            // ÉTAPE 3 : ENVOI DE LA REQUÊTE AU SERVEUR FASTAPI (main.py)
+            const response = await fetch('/api/analyse-texte', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: inputText }) // Conversion du texte en format JSON
+            });
+
+            // Conversion de la réponse reçue du serveur en objet JSON
+            const data = await response.json();
+
+            // ÉTAPE 4 : TRAITEMENT DE LA RÉPONSE DU SERVEUR
+            if (response.ok) {
+                // Le serveur a répondu 200 OK -> On extrait le texte simplifié
+                const texteFinal = data.simplified_text || data.texte_simplifie || data.resultat || data.response || "Aucun texte généré.";
+                const sourceIA = data.source || "Ollama (Local)";
+
+                // Injection du texte simplifié dans l'interface HTML
+                contenuResultat.innerHTML = `
+                    <div class="mb-3 fs-5" style="white-space: pre-line;">${texteFinal}</div>
+                    <hr class="my-2 text-success">
+                    <div class="d-flex justify-content-between align-items-center text-muted small">
+                        <span><strong>Moteur :</strong> ${sourceIA}</span>
+                        <span class="badge bg-success">Norme FALC</span>
+                    </div>
+                `;
+            } else {
+                // Le serveur a renvoyé une erreur (ex: 400 ou 500)
+                const msgErreur = data.detail || "Erreur serveur lors du traitement.";
+                contenuResultat.innerHTML = `<div class="alert alert-danger m-0">❌ <strong>Erreur API :</strong> ${msgErreur}</div>`;
             }
 
-            btn.disabled = true;
-            btn.innerText = "⏳ Analyse IA en cours...";
-            cardResultat.classList.remove('d-none');
-            contenuResultat.innerHTML = "<em>L'IA simplifie votre texte...</em>";
+        } catch (error) {
+            // ÉTAPE 5 : GESTION D'UNE ERREUR RÉSEAU (ex: FastAPI non démarré)
+            contenuResultat.innerHTML = `
+                <div class="alert alert-danger m-0">
+                    ❌ <strong>Erreur de connexion :</strong> Impossible de contacter FastAPI.<br>
+                    <small>Vérifiez que Uvicorn est bien lancé dans le terminal.</small>
+                </div>
+            `;
+        } finally {
+            // ÉTAPE 6 : RÉTABLISSEMENT DU BOUTON (Exécuté dans tous les cas, succès ou erreur)
+            btn.disabled = false;
+            btn.innerText = "⚡ Lancer l'analyse IA";
+        }
+    });
+});
+</script>
 
-            try {
-                const formData = new FormData();
-                formData.append('texte', texte);
-
-                const response = await fetch('http://127.0.0.1:8000/api/analyse-texte', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.succes) {
-                    contenuResultat.innerText = data.resultat;
-                } else {
-                    contenuResultat.innerHTML = `<span class="text-danger">❌ Erreur API : ${data.erreur}</span>`;
-                }
-
-            } catch (error) {
-                contenuResultat.innerHTML = `<span class="text-danger">❌ Impossible de contacter le serveur Python (vérifiez FastAPI sur le port 8000).</span>`;
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "⚡ Lancer l'analyse IA";
-            }
-        });
-
-        // 2. Synthèse vocale native
-        btnEcouter.addEventListener('click', () => {
-            const texteAEcouter = contenuResultat.innerText;
-            if (!texteAEcouter) return;
-
-            window.speechSynthesis.cancel(); // Arrête la lecture précédente si elle tourne
-
-            const message = new SpeechSynthesisUtterance(texteAEcouter);
-            message.lang = 'fr-FR';
-            message.rate = 0.95; // Débit légèrement adapté pour la clarté
-
-            window.speechSynthesis.speak(message);
-        });
-    </script>
 </body>
 </html>

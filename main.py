@@ -1,74 +1,138 @@
-# main.py - Serveur API universel pour le Hackathon
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from groq import Groq  # 🟢 Importation de la bibliothèque Groq
-import uvicorn
+from fastapi.staticfiles import StaticFiles
+import requests
+import os
 
+# 1. INITIALISATION DE L'APPLICATION
 app = FastAPI(title="API IA Inclusive - Hackathon")
 
-# Permet à l'interface HTML de communiquer avec le serveur sans blocage de sécurité
+# Configuration CORS (autorise l'interface HTML à contacter le serveur sans blocage)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🔑 1. Mets ta clé API Groq ici (entre les guillemets)
-GROQ_API_KEY = "VOTRE_CLE_GROQ_ICI"
-client = Groq(api_key=GROQ_API_KEY)
-
-# 🧠 2. Le Prompt Système FALC
-PROMPT_SYSTEME_FALC = """
-Tu es un expert diplômé en accessibilité numérique et en rédaction FALC (Facile À Lire et à Comprendre).
-Ton rôle est de réécrire le texte fourni par l'utilisateur pour le rendre parfaitement accessible à tous.
-
-Voici les RÈGLES STRICTES que tu dois appliquer obligatoirement :
-1. UNE SEULE IDÉE PAR PHRASE : Fais des phrases très courtes (Sujet + Verbe + Complément).
-2. VOCABULAIRE SIMPLE : Utilise des mots du quotidien. Si un mot complexe est indispensable, explique-le simplement entre parenthèses.
-3. STRUCTURE CLAIRE : Utilise des listes à puces avec des tirets dès que c'est possible pour aérer le texte.
-4. VOIX ACTIVE : Utilise la voix active et des phrases affirmatives (évite les formes négatives ou passives).
-5. PAS DE JARGON NI DE MÉTAPHORES : Supprime toutes les formules de style, abréviations non expliquées ou figures de style.
-6. FORMAT DE SORTIE : Donne DIRECTEMENT le texte simplifié. Ne rajoute AUCUNE formule d'introduction ou de politesse du type "Voici votre texte simplifié :".
+# 2. PROMPT SYSTÈME FALC (Facile À Lire et à Comprendre)
+PROMPT_SYSTEME_FALC = """Tu es un expert en simplification de texte selon les règles du FALC (Facile À Lire et à Comprendre).
+Ta mission est de réécrire le texte donné pour qu'il soit très simple, clair, accessible aux personnes en situation de handicap mental, dyslexiques, ou ayant des difficultés de compréhension.
+Consignes :
+1. Utilise des mots simples et des phrases courtes.
+2. Évite le jargon, les métaphores et le langage abstrait.
+3. Conserve l'information essentielle sans déformer le sens original.
+4. Présente le résultat de façon aérée et bien structurée.
 """
 
-@app.get("/")
-def home():
-    return {"status": "Serveur IA en ligne et prêt !"}
 
-# ⚡ 3. La route API TEXTE connectée à la VRAIE IA
+# 3. ROUTE PRINCIPALE UNIVERSELLE (TEXTE)
 @app.post("/api/analyse-texte")
-async def analyser_texte(texte: str = Form(...)):
-    try:
-        # Envoi de la requête à Llama 3.3 via Groq
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": PROMPT_SYSTEME_FALC},
-                {"role": "user", "content": f"Simplifie ce texte en FALC :\n{texte}"}
-            ],
-            model="openai/gpt-oss-20b",
-            temperature=0.3,
-        )
-        
-        # On extrait le résultat généré par l'IA
-        resultat_ia = chat_completion.choices[0].message.content
-        return {"succes": True, "resultat": resultat_ia}
-
-    except Exception as e:
-        return {"succes": False, "erreur": str(e)}
-
-
-# 4. ROUTE FICHIER / IMAGE / AUDIO : Pour recevoir des photos, vidéos ou vocaux
-@app.post("/api/analyse-media")
-async def analyser_media(file: UploadFile = File(...)):
-    type_fichier = file.content_type
-    nom_fichier = file.filename
+@app.post("/api/simplify")
+async def simplify_text(request: Request):
+    input_text = ""
     
+    # Étape A : Extraire le texte quel que soit le format envoyé par le JavaScript
+    try:
+        data = await request.json()
+        if isinstance(data, dict):
+            input_text = (
+                data.get("text") or 
+                data.get("texte") or 
+                data.get("prompt") or 
+                data.get("content") or 
+                data.get("message") or 
+                data.get("input") or ""
+            )
+        elif isinstance(data, str):
+            input_text = data
+    except Exception:
+        # Si ce n'est pas du JSON (ex: FormData)
+        try:
+            form_data = await request.form()
+            input_text = (
+                form_data.get("text") or 
+                form_data.get("texte") or 
+                form_data.get("prompt") or 
+                form_data.get("content") or ""
+            )
+        except Exception:
+            pass
+
+    if not input_text:
+        raise HTTPException(status_code=400, detail="Aucun texte n'a été fourni.")
+
+    full_prompt = f"{PROMPT_SYSTEME_FALC}\n\nTexte à simplifier :\n{input_text}"
+    
+    # --- TENTATIVE 1 : OLLAMA (100% LOCAL / HORS-LIGNE) ---
+    try:
+        ollama_response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3.2",
+                "prompt": full_prompt,
+                "stream": False
+            },
+            timeout=60
+        )
+        if ollama_response.status_code == 200:
+            result = ollama_response.json().get("response", "")
+            return {
+                "simplified_text": result,
+                "texte_simplifie": result,
+                "resultat": result,
+                "response": result,
+                "source": "Ollama (Local)"
+            }
+    except Exception as e:
+        print(f"Ollama local non disponible ou éteint : {e}")
+
+    # --- TENTATIVE 2 : GROQ (CLOUD / EN LIGNE) ---
+    api_key = os.getenv("GROQ_API_KEY", "")
+    if not api_key and os.path.exists("cle_groq.txt"):
+        with open("cle_groq.txt", "r", encoding="utf-8") as f:
+            api_key = f.read().strip()
+            
+    if api_key:
+        try:
+            groq_response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": "llama-3.2-11b-vision-preview",
+                    "messages": [
+                        {"role": "system", "content": PROMPT_SYSTEME_FALC},
+                        {"role": "user", "content": input_text}
+                    ]
+                },
+                timeout=10
+            )
+            if groq_response.status_code == 200:
+                result = groq_response.json()['choices']['message']['content']
+                return {
+                    "simplified_text": result,
+                    "texte_simplifie": result,
+                    "resultat": result,
+                    "response": result,
+                    "source": "Groq (Cloud)"
+                }
+        except Exception as e:
+            print(f"Erreur Groq : {e}")
+
+    raise HTTPException(status_code=500, detail="Aucun service d'IA (ni Ollama local, ni Groq) n'est disponible.")
+
+
+# 4. ROUTE MULTIMÉDIA (Squelette Réception Fichiers / Images / Audio)
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
     return {
-        "succes": True, 
-        "message": f"Fichier '{nom_fichier}' ({type_fichier}) reçu avec succès !",
-        "analyse": "Prêt pour le traitement par l'outil IA."
+        "filename": file.filename,
+        "content_type": file.content_type,
+        "status": "Fichier reçu avec succès",
+        "message": "Squelette prêt pour le traitement multimédia."
     }
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+# 5. SERVICE DES FICHIERS STATIQUES (Interface Web index.html)
+app.mount("/", StaticFiles(directory=".", html=True), name="static")

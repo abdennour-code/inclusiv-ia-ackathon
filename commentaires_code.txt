@@ -1,0 +1,128 @@
+# ==============================================================================
+# IMPORTS (Classés un par ligne avec explications)
+# ==============================================================================
+
+# FastAPI : Le framework web moderne. Il sert à créer l'application web et gérer les routes/URLs.
+from fastapi import FastAPI
+
+# UploadFile : Permet de recevoir des fichiers volumineux (images, audios, PDF) sans saturer la RAM du serveur.
+from fastapi import UploadFile
+
+# File : Indique à FastAPI qu'un paramètre d'une fonction provient d'un fichier envoyé par le front-end.
+from fastapi import File
+
+# Form : Permet d'extraire les données envoyées depuis un formulaire HTML classique (champs texte).
+from fastapi import Form
+
+# CORSMiddleware : Outil de sécurité indispensable pour autoriser le navigateur (HTML) à parler au serveur Python.
+from fastapi.middleware.cors import CORSMiddleware
+
+# uvicorn : Le serveur web ultra-rapide qui fait tourner le code Python en arrière-plan.
+import uvicorn
+
+
+# ==============================================================================
+# INITIALISATION DE L'APPLICATION
+# ==============================================================================
+
+# Création de l'objet principal 'app'. C'est le cœur de ton serveur web.
+# Le titre s'affichera automatiquement dans la documentation interactive (Swagger UI).
+app = FastAPI(title="API IA Inclusive - Hackathon")
+
+
+# ==============================================================================
+# CONFIGURATION DE LA SÉCURITÉ (CORS - Cross-Origin Resource Sharing)
+# ==============================================================================
+
+# On ajoute le middleware CORS à l'application.
+# Sans cette configuration, le navigateur web bloquerait les requêtes entre ton fichier HTML et ton API Python.
+app.add_middleware(
+    CORSMiddleware,
+    # allow_origins=["*"] : Autorise toutes les origines (pages web) à contacter ce serveur (idéal en Hackathon).
+    allow_origins=["*"],
+    # allow_credentials=True : Permet de gérer les cookies ou jetons de connexion si nécessaire.
+    allow_credentials=True,
+    # allow_methods=["*"] : Autorise toutes les actions HTTP (envoyer des données, lire, modifier, supprimer).
+    allow_methods=["*"],
+    # allow_headers=["*"] : Autorise tous les en-têtes de requête HTTP.
+    allow_headers=["*"],
+)
+
+
+# ==============================================================================
+# ROUTES / ENDPOINTS DE L'API (Les passerelles entre le Web et Python)
+# ==============================================================================
+
+# Route 0 : Test de santé du serveur (Méthode GET)
+# @app.get("/") signifie que cette fonction s'exécute quand on visite [suspicious link removed] dans le navigateur.
+@app.get("/")
+def accueil():
+    """
+    Fonction simple de vérification pour confirmer que le serveur est bien démarré.
+    """
+    # FastAPI convertit automatiquement ce dictionnaire Python en format JSON lisible par JavaScript.
+    return {"status": "Le serveur Python est en ligne et prêt pour l'IA !"}
+
+
+# Route 1 : Traitement du Texte (Méthode POST)
+# @app.post indique que le client (front-end) envoie des informations au serveur pour traitement.
+@app.post("/api/analyse-texte")
+async def analyser_texte(
+    # texte: str = Form(...) : Récupère la chaîne de caractères envoyée dans le champ 'texte' du formulaire.
+    texte: str = Form(...)
+):
+    """
+    Endpoint pour recevoir du texte (ex: une consigne à simplifier en FALC ou une question à poser à l'IA).
+    'async' permet au serveur d'exécuter le traitement de façon asynchrone sans bloquer les autres requêtes.
+    """
+    # 💡 C'est ICI qu'on connecte le modèle d'IA (OpenAI, Mistral, Ollama local, etc.)
+    # Pour l'instant, on simule la réponse de l'IA :
+    resultat_ia = f"Texte reçu et analysé par l'IA : {texte[:100]}..."
+
+    # On renvoie le résultat structuré en JSON vers l'interface HTML.
+    return {
+        "succes": True,
+        "resultat": resultat_ia
+    }
+
+
+# Route 2 : Traitement des Fichiers Multimédias (Images, Audio, Vidéo, PDF) (Méthode POST)
+@app.post("/api/analyse-media")
+async def analyser_media(
+    # file: UploadFile = File(...) : Récupère le fichier binaire envoyé (photo de webcam, vocal, etc.).
+    file: UploadFile = File(...)
+):
+    """
+    Endpoint pour recevoir des fichiers multimédias depuis le navigateur.
+    """
+    # file.content_type : Détecte automatiquement le type du fichier (ex: 'image/jpeg', 'audio/wav', 'application/pdf').
+    type_fichier = file.content_type
+    
+    # file.filename : Récupère le nom original du fichier transmis.
+    nom_fichier = file.filename
+    
+    # 💡 C'est ICI qu'on aiguille le fichier vers l'outil spécialisé :
+    # - Si c'est de l'audio -> transmis à Whisper pour transcription.
+    # - Si c'est une photo -> transmise à MediaPipe / OpenCV pour analyse de posture ou détection.
+    
+    # Simulation du retour serveur :
+    return {
+        "succes": True,
+        "nom_fichier": nom_fichier,
+        "type_mime": type_fichier,
+        "message": "Fichier multimédia bien reçu et prêt pour le traitement IA !"
+    }
+
+
+# ==============================================================================
+# POINT D'ENTRÉE DU SCRIPT (Lancement du serveur web)
+# ==============================================================================
+
+# Cette condition s'assure que le serveur se lance uniquement si ce fichier est exécuté directement (python main.py).
+if __name__ == "__main__":
+    # uvicorn.run(...) démarre le serveur web local.
+    # "main:app" -> 'main' est le nom du fichier Python (main.py) et 'app' est la variable de l'application FastAPI.
+    # host="127.0.0.1" -> Adresse IP locale (localhost).
+    # port=8000 -> Port d'écoute du serveur ([suspicious link removed]).
+    # reload=True -> Option magique ! Dès que tu sauvegardes une modification dans ton code, le serveur redémarre instantanément.
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
